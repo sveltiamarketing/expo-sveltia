@@ -179,14 +179,21 @@
         </div>
 
         <div class="card">
-          <label class="aviso">
+          <!-- La liga va FUERA del <label> a propósito. Adentro, el navegador tiene que decidir
+               entre seguir la liga y marcar la casilla, y esa pelea la gana uno u otro según el
+               navegador: en Safari de iPhone lo normal es que la liga no abra nada y el visitante
+               acabe marcando la casilla sin querer, justo en el único lugar de la página donde
+               eso importa. -->
+          <label class="aviso" for="acepto">
             <input type="checkbox" id="acepto">
             <span>
               Acepto que Sveltia use mis datos para enviarme la información que pedí y darme
-              seguimiento comercial, conforme al
-              <a id="liga-aviso" href="#" target="_blank" rel="noopener">aviso de privacidad</a>.
+              seguimiento comercial.
             </span>
           </label>
+          <p class="ayuda" style="margin:8px 0 0 32px">
+            <a id="liga-aviso" href="https://sveltia.mx" target="_blank" rel="noopener noreferrer">Leer el aviso de privacidad</a>
+          </p>
         </div>
 
         <div id="error" class="error oculto"></div>
@@ -233,7 +240,7 @@
   // termina en /exec. Sale de Apps Script → Implementar → Administrar
   // implementaciones → "URL de la aplicación web".
   // ------------------------------------------------------------------
-  var SISTEMA = 'https://script.google.com/macros/s/AKfycbw-yLmGQqz-HqHKM-KMtwDiI20OlKYpqKAEpnjZpgdnhJBsj5r1-I8Hm9cX58s5QfKejw/exec';
+  var SISTEMA = 'PEGA_AQUI_LA_URL_QUE_TERMINA_EN_EXEC';
 
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) {
@@ -321,7 +328,23 @@
       if (!r || !r.ok) throw new Error((r && r.error) || 'No pude cargar el formulario.');
       datos = r;
       $('bienvenida').textContent = r.bienvenida || 'Déjanos tus datos y te mandamos las fichas técnicas de lo que te interesó.';
-      if (r.ligaAviso) $('liga-aviso').href = r.ligaAviso;
+      // Una liga sin http:// adelante NO es una liga: el navegador la toma como si fuera una
+      // página de este mismo sitio y acaba abriendo expo.sveltia.mx otra vez. Como el valor lo
+      // escribe una persona en una celda de la hoja, aquí se completa en lugar de confiar.
+      var liga = String(r.ligaAviso || '').trim();
+      // Se completa el https:// SOLO cuando lo que hay parece un dominio (trae un punto antes
+      // de la primera diagonal). Un valor como "/aviso-de-privacidad" no dice de qué sitio es,
+      // y adivinarlo sería mandar al médico a una dirección inventada con el aviso legal.
+      if (liga && !/^https?:\/\//i.test(liga)) {
+        liga = /^[^\/\s]+\.[^\/\s]+/.test(liga) ? ('https://' + liga) : '';
+      }
+      if (liga) {
+        $('liga-aviso').href = liga;
+      } else {
+        // Sin aviso publicado no debería ni abrir el formulario, pero si algo lo dejara pasar,
+        // más vale texto sin liga que una liga que no lleva a ningún lado.
+        $('liga-aviso').outerHTML = 'Pídenos el aviso de privacidad en el stand.';
+      }
 
       if (!r.abierto) {
         $('cerrado').classList.remove('oculto');
